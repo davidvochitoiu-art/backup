@@ -4,18 +4,16 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Users table (unchanged)
-    cursor.execute("""
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'user'
         )
-    """)
+    ''')
 
-    # Cyber incidents (matches original CSV)
-    cursor.execute("""
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS cyber_incidents (
             incident_id INTEGER PRIMARY KEY,
             timestamp TEXT,
@@ -24,10 +22,9 @@ def create_tables():
             status TEXT,
             description TEXT
         )
-    """)
+    ''')
 
-    # Datasets metadata (matches original CSV)
-    cursor.execute("""
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS datasets_metadata (
             dataset_id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
@@ -36,10 +33,9 @@ def create_tables():
             uploaded_by TEXT,
             upload_date TEXT
         )
-    """)
+    ''')
 
-    # IT tickets (matches original CSV)
-    cursor.execute("""
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS it_tickets (
             ticket_id INTEGER PRIMARY KEY,
             priority TEXT,
@@ -49,8 +45,8 @@ def create_tables():
             created_at TEXT,
             resolution_time_hours INTEGER
         )
-    """)
+    ''')
 
     conn.commit()
     conn.close()
-    print("✓ Tables created / verified successfully.")
+    print('✓ Tables created / verified successfully.')
