@@ -1,5 +1,5 @@
 # app/data/users.py
-from App.data.db import get_connection
+from app.data.db import get_connection
 
 
 def create_user(username, password_hash, role="user"):

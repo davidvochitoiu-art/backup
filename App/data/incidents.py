@@ -1,5 +1,5 @@
 # app/data/incidents.py
-from App.data.db import get_connection
+from app.data.db import get_connection
 
 
 def create_incident(title, severity, status="open", date=None):

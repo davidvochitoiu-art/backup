@@ -1,5 +1,5 @@
-streamlit
-pandas
 bcrypt
+pandas
+streamlit
 plotly
-sqlite3
+

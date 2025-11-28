@@ -1,12 +1,12 @@
 # main.py
-from App.data.schema import create_tables
-from App.data.user_migration import migrate_users_from_txt
-from App.data.load_csv import load_all_csv
+from app.data.schema import create_tables
+from app.data.user_migration import migrate_users_from_txt
+from app.data.load_csv import load_all_csv
 
-from App.data.users import get_all_users
-from App.data.incidents import create_incident, get_all_incidents
-from App.data.datasets import create_dataset, get_all_datasets
-from App.data.tickets import create_ticket, get_all_tickets
+from app.data.users import get_all_users
+from app.data.incidents import create_incident, get_all_incidents
+from app.data.datasets import create_dataset, get_all_datasets
+from app.data.tickets import create_ticket, get_all_tickets
 
 
 def main():
