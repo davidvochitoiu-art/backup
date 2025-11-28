@@ -1,14 +1,11 @@
 # app/data/schema.py
 from app.data.db import get_connection
 
-
 def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # ---------------------------
-    # USERS TABLE
-    # ---------------------------
+    # Users table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,9 +15,7 @@ def create_tables():
         )
     """)
 
-    # ---------------------------
-    # CYBER INCIDENTS TABLE
-    # ---------------------------
+    # Cyber incidents table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cyber_incidents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,9 +26,7 @@ def create_tables():
         )
     """)
 
-    # ---------------------------
-    # DATASETS METADATA TABLE
-    # ---------------------------
+    # Datasets metadata table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS datasets_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,9 +37,7 @@ def create_tables():
         )
     """)
 
-    # ---------------------------
-    # IT TICKETS TABLE
-    # ---------------------------
+    # IT tickets table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS it_tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +51,6 @@ def create_tables():
     conn.commit()
     conn.close()
     print("✓ Tables created / verified successfully.")
-
 
 if __name__ == "__main__":
     create_tables()

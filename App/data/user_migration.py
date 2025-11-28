@@ -2,7 +2,6 @@
 import os
 from app.data.db import get_connection
 
-
 def migrate_users_from_txt(txt_path="DATA/users.txt"):
     if not os.path.exists(txt_path):
         print(f"users.txt not found at {txt_path}")
@@ -15,6 +14,7 @@ def migrate_users_from_txt(txt_path="DATA/users.txt"):
         for line in f:
             if not line.strip():
                 continue
+
             username, password_hash = line.strip().split(",", 1)
 
             cursor.execute("""

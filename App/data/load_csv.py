@@ -3,7 +3,6 @@ import os
 import pandas as pd
 from app.data.db import get_connection
 
-
 def _load_csv_to_table(csv_path, table_name):
     if not os.path.exists(csv_path):
         print(f"WARNING: {csv_path} not found, skipping.")
