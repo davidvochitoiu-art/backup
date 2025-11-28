@@ -1,4 +1,3 @@
-# app/data/incidents.py
 from app.data.db import get_connection
 
 def get_all_incidents():
@@ -9,15 +8,17 @@ def get_all_incidents():
     conn.close()
     return rows
 
-def create_incident(title, severity, status="open", date=None):
+
+def create_incident(incident_id, timestamp, severity, category, status, description):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO cyber_incidents (title, severity, status, date)
-        VALUES (?, ?, ?, ?)
-    """, (title, severity, status, date))
+        INSERT INTO cyber_incidents (incident_id, timestamp, severity, category, status, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (incident_id, timestamp, severity, category, status, description))
     conn.commit()
     conn.close()
+
 
 def update_incident_status(incident_id, new_status):
     conn = get_connection()
@@ -25,14 +26,15 @@ def update_incident_status(incident_id, new_status):
     cursor.execute("""
         UPDATE cyber_incidents
         SET status = ?
-        WHERE id = ?
+        WHERE incident_id = ?
     """, (new_status, incident_id))
     conn.commit()
     conn.close()
 
+
 def delete_incident(incident_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM cyber_incidents WHERE id = ?", (incident_id,))
+    cursor.execute("DELETE FROM cyber_incidents WHERE incident_id = ?", (incident_id,))
     conn.commit()
     conn.close()

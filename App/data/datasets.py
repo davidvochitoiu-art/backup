@@ -1,4 +1,3 @@
-# app/data/datasets.py
 from app.data.db import get_connection
 
 def get_all_datasets():
@@ -9,30 +8,21 @@ def get_all_datasets():
     conn.close()
     return rows
 
-def create_dataset(name, source, category, size):
+
+def create_dataset(dataset_id, name, rows, columns, uploaded_by, upload_date):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO datasets_metadata (name, source, category, size)
-        VALUES (?, ?, ?, ?)
-    """, (name, source, category, size))
+        INSERT INTO datasets_metadata (dataset_id, name, rows, columns, uploaded_by, upload_date)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (dataset_id, name, rows, columns, uploaded_by, upload_date))
     conn.commit()
     conn.close()
 
-def update_dataset_size(dataset_id, new_size):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE datasets_metadata
-        SET size = ?
-        WHERE id = ?
-    """, (new_size, dataset_id))
-    conn.commit()
-    conn.close()
 
 def delete_dataset(dataset_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM datasets_metadata WHERE id = ?", (dataset_id,))
+    cursor.execute("DELETE FROM datasets_metadata WHERE dataset_id = ?", (dataset_id,))
     conn.commit()
     conn.close()

@@ -1,4 +1,3 @@
-# app/data/load_csv.py
 import os
 import pandas as pd
 from app.data.db import get_connection

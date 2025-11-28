@@ -1,46 +1,29 @@
-# main.py
 from app.data.schema import create_tables
 from app.data.user_migration import migrate_users_from_txt
 from app.data.load_csv import load_all_csv
 
-from app.data.users import get_all_users
-from app.data.incidents import create_incident, get_all_incidents
-from app.data.datasets import create_dataset, get_all_datasets
-from app.data.tickets import create_ticket, get_all_tickets
+from app.data.incidents import get_all_incidents
+from app.data.datasets import get_all_datasets
+from app.data.tickets import get_all_tickets
 
 
 def main():
     print("=== WEEK 8: DATABASE SETUP & CRUD DEMO ===")
 
-    # 1. Create tables
     create_tables()
-
-    # 2. Migrate users from users.txt
     migrate_users_from_txt()
-
-    # 3. Load CSV data (if files are present)
     load_all_csv()
 
-    # 4. Test CRUD: create sample records (optional)
-    print("\n--- Creating sample records ---")
-    create_incident("Test Incident", "High", status="open", date="2025-01-01")
-    create_dataset("Test Dataset", "Lab", "Sample", 1234)
-    create_ticket("Test Ticket", "Medium", status="open", created_date="2025-01-02")
+    print("\n--- Cyber Incidents ---")
+    print(get_all_incidents()[:115])
 
-    # 5. Read back some data
-    print("\n--- Users ---")
-    print(get_all_users())
-
-    print("\n--- Incidents (first 5) ---")
-    print(get_all_incidents()[:5])
-
-    print("\n--- Datasets (first 5) ---")
+    print("\n--- Datasets ---")
     print(get_all_datasets()[:5])
 
-    print("\n--- Tickets (first 5) ---")
-    print(get_all_tickets()[:5])
+    print("\n--- IT Tickets ---")
+    print(get_all_tickets()[:150])
 
-    print("\n✓ Week 8 demo completed successfully.")
+    print("\n✓ Week 8 complete.")
 
 
 if __name__ == "__main__":

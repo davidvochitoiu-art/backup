@@ -1,11 +1,10 @@
-# app/data/schema.py
 from app.data.db import get_connection
 
 def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Users table
+    # Users table (unchanged)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,42 +14,43 @@ def create_tables():
         )
     """)
 
-    # Cyber incidents table
+    # Cyber incidents (matches original CSV)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cyber_incidents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            status TEXT DEFAULT 'open',
-            date TEXT
+            incident_id INTEGER PRIMARY KEY,
+            timestamp TEXT,
+            severity TEXT,
+            category TEXT,
+            status TEXT,
+            description TEXT
         )
     """)
 
-    # Datasets metadata table
+    # Datasets metadata (matches original CSV)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS datasets_metadata (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dataset_id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            source TEXT,
-            category TEXT,
-            size INTEGER
+            rows INTEGER,
+            columns INTEGER,
+            uploaded_by TEXT,
+            upload_date TEXT
         )
     """)
 
-    # IT tickets table
+    # IT tickets (matches original CSV)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS it_tickets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            priority TEXT NOT NULL,
-            status TEXT DEFAULT 'open',
-            created_date TEXT
+            ticket_id INTEGER PRIMARY KEY,
+            priority TEXT,
+            description TEXT,
+            status TEXT,
+            assigned_to TEXT,
+            created_at TEXT,
+            resolution_time_hours INTEGER
         )
     """)
 
     conn.commit()
     conn.close()
     print("✓ Tables created / verified successfully.")
-
-if __name__ == "__main__":
-    create_tables()
