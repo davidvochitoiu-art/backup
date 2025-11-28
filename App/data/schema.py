@@ -6,7 +6,9 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Users table
+    # ---------------------------
+    # USERS TABLE
+    # ---------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +18,9 @@ def create_tables():
         )
     """)
 
-    # Cyber incidents
+    # ---------------------------
+    # CYBER INCIDENTS TABLE
+    # ---------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cyber_incidents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +31,9 @@ def create_tables():
         )
     """)
 
-    # Datasets metadata
+    # ---------------------------
+    # DATASETS METADATA TABLE
+    # ---------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS datasets_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +44,9 @@ def create_tables():
         )
     """)
 
-    # IT tickets
+    # ---------------------------
+    # IT TICKETS TABLE
+    # ---------------------------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS it_tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
