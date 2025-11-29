@@ -51,31 +51,62 @@ with st.sidebar:
         ["Cyber Incidents", "Datasets Metadata", "IT Tickets"]
     )
 
-# -----------------------------
-# Display selected table + charts
-# -----------------------------
+
+# =============================
+#     CYBER INCIDENTS
+# =============================
 if table_choice == "Cyber Incidents":
     st.subheader("🛡 Cyber Incidents Table")
     st.dataframe(df_incidents)
 
+    # ----- BAR CHART -----
     st.subheader("Severity Count (Bar Chart)")
     severity_counts = df_incidents["severity"].value_counts()
     st.bar_chart(severity_counts)
 
+    # ----- LINE CHART: INCIDENTS OVER TIME -----
+    st.subheader("Incidents Over Time (Line Chart)")
+    df_incidents["timestamp"] = pd.to_datetime(df_incidents["timestamp"], errors="coerce")
+    incidents_per_day = df_incidents.groupby(df_incidents["timestamp"].dt.date).size()
+    st.line_chart(incidents_per_day)
+
+
+# =============================
+#     DATASETS
+# =============================
 elif table_choice == "Datasets Metadata":
     st.subheader("📦 Datasets Metadata Table")
     st.dataframe(df_datasets)
 
+    # ----- BAR CHART -----
     st.subheader("Rows per Dataset (Bar Chart)")
     st.bar_chart(df_datasets.set_index("name")["rows"])
 
+    # ----- LINE CHART: DATASET SIZE TREND -----
+    st.subheader("Dataset Size Trend Over Time (Line Chart)")
+    df_datasets["upload_date"] = pd.to_datetime(df_datasets["upload_date"], errors="coerce")
+    dataset_trend = df_datasets.groupby(df_datasets["upload_date"].dt.date)["rows"].sum()
+    st.line_chart(dataset_trend)
+
+
+# =============================
+#          IT TICKETS
+# =============================
 elif table_choice == "IT Tickets":
     st.subheader("🧰 IT Tickets Table")
     st.dataframe(df_tickets)
 
+    # ----- BAR CHART -----
     st.subheader("Priority Count (Bar Chart)")
     priority_counts = df_tickets["priority"].value_counts()
     st.bar_chart(priority_counts)
+
+    # ----- LINE CHART: RESOLUTION TREND -----
+    st.subheader("Resolution Time Trend (Line Chart)")
+    df_tickets["created_at"] = pd.to_datetime(df_tickets["created_at"], errors="coerce")
+    ticket_trend = df_tickets.groupby(df_tickets["created_at"].dt.date)["resolution_time_hours"].mean()
+    st.line_chart(ticket_trend)
+
 
 # -----------------------------
 # Logout
