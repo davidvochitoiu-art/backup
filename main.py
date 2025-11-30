@@ -1,10 +1,10 @@
-from app.data.schema import create_tables
-from app.data.user_migration import migrate_users_from_txt
-from app.data.load_csv import load_all_csv
+from Streamlit.app.data.schema import create_tables
+from Streamlit.app.data.user_migration import migrate_users_from_txt
+from Streamlit.app.data.load_csv import load_all_csv
 
-from app.data.incidents import get_all_incidents
-from app.data.datasets import get_all_datasets
-from app.data.tickets import get_all_tickets
+from Streamlit.app.data.incidents import get_all_incidents
+from Streamlit.app.data.datasets import get_all_datasets
+from Streamlit.app.data.tickets import get_all_tickets
 
 
 def main():
