@@ -22,22 +22,21 @@ with st.sidebar:
     st.page_link("pages/1_Dashboard.py", label="📊 Dashboard")
     st.page_link("pages/2_AI_Assistant.py", label="🤖 AI Assistant")
 
-st.title("🤖 Multi-Domain AI Assistant (FREE)")
-st.caption("Powered by Llama 3:8B (local model via Ollama)")
+st.title("🤖 Ultra-Fast Multi-Domain AI Assistant (FREE)")
+st.caption("Powered by Phi-3 Mini (local model via Ollama)")
 
 # ------------------------------------------------------
-# AI Function (uses local Ollama model llama3:8b)
+# SUPER FAST AI FUNCTION (phi3:mini)
 # ------------------------------------------------------
 def ask_local_ai(prompt):
     r = requests.post(
         "http://localhost:11434/api/generate",
-        json={"model": "llama3:8b", "prompt": prompt},
+        json={"model": "phi3:mini", "prompt": prompt},
         stream=True
     )
 
     full_reply = ""
 
-    # Read Ollama stream chunk by chunk
     for line in r.iter_lines():
         if line:
             try:
@@ -51,25 +50,18 @@ def ask_local_ai(prompt):
 
 
 # ------------------------------------------------------
-# Conversation memory
+# Conversation memory (LIMITED FOR SPEED)
 # ------------------------------------------------------
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "system",
-            "content": """You are an expert assistant specialising in:
-- Cyber Security
-- Data Analytics
-- IT Operations
-Provide clear and detailed support for incidents, datasets, and tickets."""
-        }
-    ]
+    st.session_state.messages = []
+
+# Only keep last 3 messages for faster inference
+conversation_context = st.session_state.messages[-3:]
 
 # Display conversation
-for msg in st.session_state.messages:
-    if msg["role"] != "system":
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+for msg in conversation_context:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
 # ------------------------------------------------------
 # Chat input
@@ -77,17 +69,22 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Ask the AI Assistant...")
 
 if prompt:
-    # Show user message
+
+    # Display user message
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Store message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Get reply from local Llama 3:8b
-    reply = ask_local_ai(prompt)
+    # Generate fast AI reply
+    reply = ask_local_ai(
+        f"You are an expert in cyber security, data analytics, and IT operations. Respond clearly.\nUser: {prompt}"
+    )
 
-    # Show AI response
+    # Display AI message
     with st.chat_message("assistant"):
         st.markdown(reply)
 
+    # Store AI response
     st.session_state.messages.append({"role": "assistant", "content": reply})
