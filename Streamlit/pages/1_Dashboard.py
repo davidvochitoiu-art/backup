@@ -21,6 +21,22 @@ st.title("📊 Real Data Dashboard")
 st.success(f"Welcome, {st.session_state.username}!")
 
 # -----------------------------
+# Sidebar: navigation + table choice
+# -----------------------------
+with st.sidebar:
+    st.title("Navigation")
+    st.page_link("Home.py", label="🏠 Home")
+    st.page_link("pages/1_Dashboard.py", label="📊 Dashboard")
+    st.page_link("pages/2_AI_Assistant.py", label="🤖 AI Assistant")
+
+    st.divider()
+    st.header("Choose Table")
+    table_choice = st.selectbox(
+        "Select table to display:",
+        ["Cyber Incidents", "Datasets Metadata", "IT Tickets"]
+    )
+
+# -----------------------------
 # Load REAL data from SQL
 # -----------------------------
 incidents = get_all_incidents()
@@ -40,16 +56,6 @@ df_tickets = pd.DataFrame(tickets, columns=[
     "ticket_id", "priority", "description", "status", "assigned_to",
     "created_at", "resolution_time_hours"
 ])
-
-# -----------------------------
-# Sidebar selection
-# -----------------------------
-with st.sidebar:
-    st.header("Choose Table")
-    table_choice = st.selectbox(
-        "Select table to display:",
-        ["Cyber Incidents", "Datasets Metadata", "IT Tickets"]
-    )
 
 # =============================
 #     CYBER INCIDENTS
@@ -86,7 +92,7 @@ if table_choice == "Cyber Incidents":
 
         if st.button("Create Incident"):
             create_incident(new_id, new_timestamp, new_severity, new_category, new_status, new_desc)
-            st.success("Incident created! Refresh page.")
+            st.rerun()
 
     # UPDATE
     with st.expander("🔄 Update Incident Status"):
@@ -95,7 +101,7 @@ if table_choice == "Cyber Incidents":
 
         if st.button("Update Status"):
             update_incident_status(select_id, new_status2)
-            st.success("Incident status updated! Refresh page.")
+            st.rerun()
 
     # DELETE
     with st.expander("🗑 Delete Incident"):
@@ -103,8 +109,7 @@ if table_choice == "Cyber Incidents":
 
         if st.button("Delete Incident"):
             delete_incident(del_id)
-            st.error("Incident deleted! Refresh page.")
-
+            st.rerun()
 
 # =============================
 #     DATASETS
@@ -140,7 +145,7 @@ elif table_choice == "Datasets Metadata":
 
         if st.button("Create Dataset"):
             create_dataset(d_id, d_name, d_rows, d_cols, d_user, d_date)
-            st.success("Dataset created! Refresh page.")
+            st.rerun()
 
     # DELETE
     with st.expander("🗑 Delete Dataset"):
@@ -148,8 +153,7 @@ elif table_choice == "Datasets Metadata":
 
         if st.button("Delete Dataset"):
             delete_dataset(del_dataset)
-            st.error("Dataset deleted! Refresh page.")
-
+            st.rerun()
 
 # =============================
 #          IT TICKETS
@@ -187,7 +191,7 @@ elif table_choice == "IT Tickets":
 
         if st.button("Create Ticket"):
             create_ticket(t_id, t_priority, t_desc, t_status, t_assigned, t_created, t_res)
-            st.success("Ticket created! Refresh page.")
+            st.rerun()
 
     # UPDATE
     with st.expander("🔄 Update Ticket Status"):
@@ -196,7 +200,7 @@ elif table_choice == "IT Tickets":
 
         if st.button("Update Ticket"):
             update_ticket_status(t_select, t_new_status)
-            st.success("Ticket status updated! Refresh page.")
+            st.rerun()
 
     # DELETE
     with st.expander("🗑 Delete Ticket"):
@@ -204,8 +208,7 @@ elif table_choice == "IT Tickets":
 
         if st.button("Delete Ticket"):
             delete_ticket(del_t)
-            st.error("Ticket deleted! Refresh page.")
-
+            st.rerun()
 
 # -----------------------------
 # Logout
