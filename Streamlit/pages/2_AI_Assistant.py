@@ -26,11 +26,13 @@ st.caption("Powered by Llama 3 (local model via Ollama)")
 
 # Function to send chat request to Ollama (FREE)
 def ask_local_ai(prompt):
-    response = requests.post(
+    r = requests.post(
         "http://localhost:11434/api/generate",
         json={"model": "llama3", "prompt": prompt}
     )
-    return response.json()["response"]
+    print(r.json())   # DEBUG: show actual structure
+    return r.json()
+
 
 # Initialise conversation history
 if "messages" not in st.session_state:
