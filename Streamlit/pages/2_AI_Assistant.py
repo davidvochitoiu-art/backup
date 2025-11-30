@@ -1,7 +1,5 @@
 import streamlit as st
-import openai
-from openai import OpenAI
-
+import requests
 
 st.set_page_config(page_title="AI Assistant", page_icon="🤖")
 
@@ -14,9 +12,6 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
         st.switch_page("Home.py")
     st.stop()
 
-# Connect to OpenAI using secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
 # -----------------------------
 # Sidebar navigation
 # -----------------------------
@@ -26,8 +21,16 @@ with st.sidebar:
     st.page_link("pages/1_Dashboard.py", label="📊 Dashboard")
     st.page_link("pages/2_AI_Assistant.py", label="🤖 AI Assistant")
 
-st.title("🤖 Multi-Domain AI Assistant")
-st.caption("Powered by OpenAI GPT-4o")
+st.title("🤖 Multi-Domain AI Assistant (FREE)")
+st.caption("Powered by Llama 3 (local model via Ollama)")
+
+# Function to send chat request to Ollama (FREE)
+def ask_local_ai(prompt):
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={"model": "llama3", "prompt": prompt}
+    )
+    return response.json()["response"]
 
 # Initialise conversation history
 if "messages" not in st.session_state:
@@ -59,21 +62,11 @@ if prompt:
 
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Stream assistant reply
-    reply = ""
+    # Get AI response (FREE, local)
+    reply = ask_local_ai(prompt)
+
+    # Display AI response
     with st.chat_message("assistant"):
-        container = st.empty()
-
-        for chunk in client.chat.completions.create(
-            model="gpt-4o",
-            messages=st.session_state.messages,
-            temperature=1,
-            stream=True
-        ):
-            if chunk.choices[0].delta.content:
-                reply += chunk.choices[0].delta.content
-                container.markdown(reply + "▌")
-
-        container.markdown(reply)
+        st.markdown(reply)
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
