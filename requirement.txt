@@ -1,5 +1,7 @@
-bcrypt
-pandas
 streamlit
+pandas
+numpy
 plotly
-
+bcrypt
+requests
+python-dotenv
