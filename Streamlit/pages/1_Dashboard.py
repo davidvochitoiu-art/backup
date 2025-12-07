@@ -15,25 +15,29 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.error("You must log in first.")
     st.switch_page("Home.py")
 
-st.title("📊 Multi-Domain Dashboard")
+st.title("📊 Multi-Domain Intelligence Dashboard")
 
 # -----------------------------------
 # DATABASE
 # -----------------------------------
 db = DatabaseManager("DATA/intelligence_platform.db")
 
-# ==============================================================
-#                     CYBER INCIDENTS (OOP)
-# ==============================================================
+# --------------------------------------------------------------
+# SECTION 1 — CYBERSECURITY INCIDENTS
+# --------------------------------------------------------------
+
+st.header("🛡️ Cybersecurity Incidents")
+st.write("""
+This section provides an overview of the cybersecurity incidents recorded in the system.  
+It includes key details such as incident category, severity levels, status, and descriptions.  
+A severity-level chart helps visualize how critical the incidents are.
+""")
 
 rows_incidents = db.fetch_all(
     "SELECT incident_id, category, severity, status, description FROM cyber_incidents"
 )
 
-incidents = [
-    SecurityIncident(*row)
-    for row in rows_incidents
-]
+incidents = [SecurityIncident(*row) for row in rows_incidents]
 
 df_incidents = pd.DataFrame([{
     "ID": inc.get_id(),
@@ -41,26 +45,32 @@ df_incidents = pd.DataFrame([{
     "Severity": inc.get_severity(),
     "Status": inc.get_status(),
     "Description": inc.get_description(),
-    "Level": inc.get_severity_level()
+    "Severity Level (1–4)": inc.get_severity_level()
 } for inc in incidents])
 
-st.subheader("Cybersecurity Incidents")
-st.dataframe(df_incidents)
-st.bar_chart(df_incidents["Level"])
+st.subheader("Incident Records")
+st.dataframe(df_incidents, use_container_width=True)
+
+st.subheader("Severity Level Distribution")
+st.bar_chart(df_incidents["Severity Level (1–4)"])
 
 
-# ==============================================================
-#                         DATASETS (OOP)
-# ==============================================================
+# --------------------------------------------------------------
+# SECTION 2 — DATASETS OVERVIEW
+# --------------------------------------------------------------
+
+st.header("📂 Datasets Overview")
+st.write("""
+This section displays metadata about datasets uploaded to the system.  
+It shows each dataset’s size estimate, number of rows/columns, uploader information,  
+and upload date. This helps analysts understand available data resources.
+""")
 
 rows_datasets = db.fetch_all(
     "SELECT dataset_id, name, rows, columns, uploaded_by, upload_date FROM datasets_metadata"
 )
 
-datasets = [
-    Dataset(*row)
-    for row in rows_datasets
-]
+datasets = [Dataset(*row) for row in rows_datasets]
 
 df_datasets = pd.DataFrame([{
     "ID": ds.get_id(),
@@ -72,13 +82,23 @@ df_datasets = pd.DataFrame([{
     "Estimated Size (MB)": ds.calculate_size_mb()
 } for ds in datasets])
 
-st.subheader("Datasets Overview")
-st.dataframe(df_datasets)
+st.subheader("Dataset Records")
+st.dataframe(df_datasets, use_container_width=True)
+
+st.subheader("Dataset Size Estimate (MB)")
+st.bar_chart(df_datasets["Estimated Size (MB)"])
 
 
-# ==============================================================
-#                        IT TICKETS (OOP)
-# ==============================================================
+# --------------------------------------------------------------
+# SECTION 3 — IT TICKETS
+# --------------------------------------------------------------
+
+st.header("💼 IT Support Tickets")
+st.write("""
+This section provides insights into IT support tickets created in the system.  
+It includes priority levels, assigned personnel, and ticket status.  
+A priority chart helps visualize the distribution of workload.
+""")
 
 rows_tickets = db.fetch_all(
     "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
@@ -103,5 +123,8 @@ df_tickets = pd.DataFrame([{
     "Assigned To": tk.get_assigned_to()
 } for tk in tickets])
 
-st.subheader("IT Tickets Overview")
-st.dataframe(df_tickets)
+st.subheader("Ticket Records")
+st.dataframe(df_tickets, use_container_width=True)
+
+st.subheader("Priority Distribution")
+st.bar_chart(df_tickets["Priority"])
