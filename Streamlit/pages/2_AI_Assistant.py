@@ -69,24 +69,104 @@ tickets = [
 # ==============================================================
 
 def build_context():
-    context = "\n=== SYSTEM DATA CONTEXT ===\n"
+    # -------------------------------------------
+    # Build intelligent analytics for the AI
+    # -------------------------------------------
+    context = "### SYSTEM INTELLIGENCE CONTEXT\n"
 
-    # INCIDENTS
-    context += "\nCyber Incidents:\n"
-    for inc in incidents:
-        context += f"- [{inc.get_severity()}] {inc.get_incident_type()} | Status: {inc.get_status()}\n"
+    # ==========================================================
+    # INCIDENT ANALYTICS
+    # ==========================================================
+    context += "\n## Cybersecurity Incidents Summary\n"
 
-    # DATASETS
-    context += "\nDatasets:\n"
-    for ds in datasets:
-        context += f"- {ds.get_name()} | Rows: {ds.get_rows()}, Columns: {ds.get_columns()}\n"
+    if incidents:
+        total_inc = len(incidents)
+        critical_inc = sum(1 for i in incidents if i.get_severity().lower() == "critical")
+        high_inc = sum(1 for i in incidents if i.get_severity().lower() == "high")
 
-    # TICKETS
-    context += "\nIT Tickets:\n"
-    for tk in tickets:
-        context += f"- {tk.get_title()} | Priority: {tk.get_priority()} | Status: {tk.get_status()}\n"
+        # Most common category
+        cats = [i.get_incident_type() for i in incidents]
+        top_cat = max(set(cats), key=cats.count)
 
-    context += "\nUse this data to answer the user's question.\n"
+        context += (
+            f"- Total incidents: {total_inc}\n"
+            f"- Critical incidents: {critical_inc}\n"
+            f"- High severity incidents: {high_inc}\n"
+            f"- Most common incident category: {top_cat}\n"
+        )
+
+        # List top 5 severe incidents
+        top_severe = sorted(
+            incidents,
+            key=lambda i: i.get_severity_level(),
+            reverse=True
+        )[:5]
+
+        context += "\n### Top Severe Incidents\n"
+        for inc in top_severe:
+            context += (
+                f"- [{inc.get_severity()}] {inc.get_incident_type()} "
+                f"(Status: {inc.get_status()}) — {inc.get_description()}\n"
+            )
+    else:
+        context += "- No incident data available.\n"
+
+    # ==========================================================
+    # DATASET ANALYTICS
+    # ==========================================================
+    context += "\n## Dataset Analytics\n"
+
+    if datasets:
+        largest = max(datasets, key=lambda d: d.get_rows() or 0)
+
+        context += (
+            f"- Total datasets: {len(datasets)}\n"
+            f"- Largest dataset: {largest.get_name()} "
+            f"({largest.get_rows()} rows, {largest.get_columns()} cols)\n"
+        )
+
+        # Row count distribution
+        row_counts = [d.get_rows() for d in datasets if d.get_rows() is not None]
+        if row_counts:
+            avg_rows = sum(row_counts) / len(row_counts)
+            context += f"- Average dataset row count: {avg_rows:.2f}\n"
+    else:
+        context += "- No datasets available.\n"
+
+    # ==========================================================
+    # TICKET ANALYTICS
+    # ==========================================================
+    context += "\n## IT Tickets Summary\n"
+
+    if tickets:
+        total_tk = len(tickets)
+        closed_tk = sum(1 for t in tickets if t.get_status().lower() == "closed")
+
+        staff_list = [t.get_assigned_to() for t in tickets if t.get_assigned_to()]
+        if staff_list:
+            top_worker = max(set(staff_list), key=staff_list.count)
+        else:
+            top_worker = "N/A"
+
+        context += (
+            f"- Total tickets: {total_tk}\n"
+            f"- Closed tickets: {closed_tk}\n"
+            f"- Staff with most tickets: {top_worker}\n"
+        )
+    else:
+        context += "- No ticket data available.\n"
+
+    # ==========================================================
+    # FINAL INSTRUCTIONS FOR THE AI
+    # ==========================================================
+    context += (
+        "\n### Instructions\n"
+        "You are an expert analyst AI assistant.\n"
+        "Use the analytics above to answer the user's question clearly and intelligently.\n"
+        "Provide explanations, insights, and recommendations when helpful.\n"
+        "Do not just repeat the data — analyse it.\n"
+    )
+
     return context
 
 
