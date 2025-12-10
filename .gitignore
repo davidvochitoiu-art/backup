@@ -1,11 +1,20 @@
-# Python example
+# Python cache
 __pycache__/
 *.pyc
+
+# Environment files
 .env
+
+# IDE / Editor settings
 .vscode/
 .idea/
-.cyber_indicident.csv
-.dataset_metadata.csv
-.it_tickets.csv
-.intelligenmce_platform.db
-.user.txt
+
+# Ignore the DATA folder
+DATA/
+
+# Ignore specific files inside DATA
+cyber_incidents.csv
+datasets_metadata.csv
+it_tickets.csv
+intelligence_platform.db
+users.txt
