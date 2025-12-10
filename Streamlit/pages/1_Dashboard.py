@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 from app.services.database_manager import DatabaseManager
 from app.models.security_incident import SecurityIncident
@@ -8,123 +9,201 @@ from app.models.it_ticket import ITTicket
 
 st.set_page_config(page_title="Dashboard", layout="wide")
 
-# -----------------------------------
-# LOGIN CHECK
-# -----------------------------------
+# ---------------- LOGIN CHECK ----------------
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
-    st.error("You must log in first.")
+    st.error("Please log in first.")
     st.switch_page("Home.py")
 
-st.title("📊 Multi-Domain Intelligence Dashboard")
+st.title("📊 Multi-Domain Intelligence Platform – Dashboard")
 
-# -----------------------------------
-# DATABASE
-# -----------------------------------
+# ---------------- DATABASE ----------------
 db = DatabaseManager("DATA/intelligence_platform.db")
 
-# --------------------------------------------------------------
-# SECTION 1 — CYBERSECURITY INCIDENTS
-# --------------------------------------------------------------
-
-st.header("🛡️ Cybersecurity Incidents")
-st.write("""
-This section provides an overview of the cybersecurity incidents recorded in the system.  
-It includes key details such as incident category, severity levels, status, and descriptions.  
-A severity-level chart helps visualize how critical the incidents are.
-""")
-
-rows_incidents = db.fetch_all(
+# Cyber incidents
+inc_rows = db.fetch_all(
     "SELECT incident_id, category, severity, status, description FROM cyber_incidents"
 )
+incidents = [
+    SecurityIncident(
+        incident_id=row[0],
+        incident_type=row[1],
+        severity=row[2],
+        status=row[3],
+        description=row[4],
+    )
+    for row in inc_rows
+]
 
-incidents = [SecurityIncident(*row) for row in rows_incidents]
+df_inc = pd.DataFrame(
+    [
+        {
+            "ID": i.get_id(),
+            "Category": i.get_incident_type(),
+            "Severity": i.get_severity(),
+            "Status": i.get_status(),
+        }
+        for i in incidents
+    ]
+)
 
-df_incidents = pd.DataFrame([{
-    "ID": inc.get_id(),
-    "Category": inc.get_incident_type(),
-    "Severity": inc.get_severity(),
-    "Status": inc.get_status(),
-    "Description": inc.get_description(),
-    "Severity Level (1–4)": inc.get_severity_level()
-} for inc in incidents])
-
-st.subheader("Incident Records")
-st.dataframe(df_incidents, use_container_width=True)
-
-st.subheader("Severity Level Distribution")
-st.bar_chart(df_incidents["Severity Level (1–4)"])
-
-
-# --------------------------------------------------------------
-# SECTION 2 — DATASETS OVERVIEW
-# --------------------------------------------------------------
-
-st.header("📂 Datasets Overview")
-st.write("""
-This section displays metadata about datasets uploaded to the system.  
-It shows each dataset’s size estimate, number of rows/columns, uploader information,  
-and upload date. This helps analysts understand available data resources.
-""")
-
-rows_datasets = db.fetch_all(
+# Datasets
+data_rows = db.fetch_all(
     "SELECT dataset_id, name, rows, columns, uploaded_by, upload_date FROM datasets_metadata"
 )
+datasets = [Dataset(*row) for row in data_rows]
 
-datasets = [Dataset(*row) for row in rows_datasets]
-
-df_datasets = pd.DataFrame([{
-    "ID": ds.get_id(),
-    "Name": ds.get_name(),
-    "Rows": ds.get_rows(),
-    "Columns": ds.get_columns(),
-    "Uploaded By": ds.get_uploaded_by(),
-    "Upload Date": ds.get_upload_date(),
-    "Estimated Size (MB)": ds.calculate_size_mb()
-} for ds in datasets])
-
-st.subheader("Dataset Records")
-st.dataframe(df_datasets, use_container_width=True)
-
-st.subheader("Dataset Size Estimate (MB)")
-st.bar_chart(df_datasets["Estimated Size (MB)"])
-
-
-# --------------------------------------------------------------
-# SECTION 3 — IT TICKETS
-# --------------------------------------------------------------
-
-st.header("💼 IT Support Tickets")
-st.write("""
-This section provides insights into IT support tickets created in the system.  
-It includes priority levels, assigned personnel, and ticket status.  
-A priority chart helps visualize the distribution of workload.
-""")
-
-rows_tickets = db.fetch_all(
-    "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
+df_data = pd.DataFrame(
+    [
+        {
+            "ID": d.get_id(),
+            "Name": d.get_name(),
+            "Rows": d.get_rows(),
+            "Columns": d.get_columns(),
+            "Uploaded By": d.get_uploaded_by(),
+            "Upload Date": d.get_upload_date(),
+            "Estimated Size (MB)": d.calculate_size_mb(),
+        }
+        for d in datasets
+    ]
 )
 
+# IT Tickets
+ticket_rows = db.fetch_all(
+    "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
+)
 tickets = [
     ITTicket(
         ticket_id=row[0],
         title=row[2],
         priority=row[1],
         status=row[3],
-        assigned_to=row[4]
+        assigned_to=row[4],
     )
-    for row in rows_tickets
+    for row in ticket_rows
 ]
 
-df_tickets = pd.DataFrame([{
-    "ID": tk.get_id(),
-    "Title": tk.get_title(),
-    "Priority": tk.get_priority(),
-    "Status": tk.get_status(),
-    "Assigned To": tk.get_assigned_to()
-} for tk in tickets])
+df_tickets = pd.DataFrame(
+    [
+        {
+            "ID": t.get_id(),
+            "Priority": t.get_priority(),
+            "Status": t.get_status(),
+            "Assigned To": t.get_assigned_to(),
+        }
+        for t in tickets
+    ]
+)
 
-st.subheader("Ticket Records")
-st.dataframe(df_tickets, use_container_width=True)
+# ---------------- KPI CARDS ----------------
+st.subheader("📌 Key Metrics Overview")
 
-st.subheader("Priority Distribution")
-st.bar_chart(df_tickets["Priority"])
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric("Total Cyber Incidents", len(df_inc))
+
+with col2:
+    critical_count = sum(
+        1 for i in incidents if i.get_severity().lower() == "critical"
+    )
+    st.metric("Critical Incidents", critical_count)
+
+with col3:
+    st.metric("Total Datasets", len(df_data))
+
+with col4:
+    st.metric("Total IT Tickets", len(df_tickets))
+
+st.markdown("---")
+
+# ---------------- 3-DOMAIN VISUAL OVERVIEW ----------------
+st.header("📊 Domain Analytics Overview")
+
+# --------- CYBER INCIDENTS ----------
+st.subheader("🛡 Cybersecurity Overview")
+
+if not df_inc.empty:
+    colA, colB = st.columns(2)
+
+    with colA:
+        st.write("**Incident Severity Distribution**")
+        fig_sev = px.bar(
+            df_inc["Severity"].value_counts(),
+            title="Severity Distribution",
+            labels={"value": "Count", "index": "Severity"},
+        )
+        st.plotly_chart(fig_sev, use_container_width=True)
+
+    with colB:
+        st.write("**Incident Categories**")
+        fig_cat = px.bar(
+            df_inc["Category"].value_counts(),
+            title="Category Distribution",
+            labels={"value": "Count", "index": "Category"},
+        )
+        st.plotly_chart(fig_cat, use_container_width=True)
+else:
+    st.info("No incident data available.")
+
+st.markdown("---")
+
+# --------- DATASETS ----------
+st.subheader("📂 Dataset Overview")
+
+if not df_data.empty:
+    colA, colB = st.columns(2)
+
+    with colA:
+        st.write("**Dataset Size (MB)**")
+        fig_size = px.bar(
+            df_data,
+            x="Name",
+            y="Estimated Size (MB)",
+            title="Dataset Size Comparison",
+        )
+        st.plotly_chart(fig_size, use_container_width=True)
+
+    with colB:
+        st.write("**Rows per Dataset**")
+        fig_rows = px.line(
+            df_data,
+            x="Name",
+            y="Rows",
+            markers=True,
+            title="Dataset Row Count Overview",
+        )
+        st.plotly_chart(fig_rows, use_container_width=True)
+else:
+    st.info("No dataset information found.")
+
+st.markdown("---")
+
+# --------- IT TICKETS ----------
+st.subheader("💼 IT Ticket Overview")
+
+if not df_tickets.empty:
+    colA, colB = st.columns(2)
+
+    with colA:
+        st.write("**Priority Breakdown**")
+        fig_priority = px.bar(
+            df_tickets["Priority"].value_counts(),
+            title="Ticket Priority Distribution",
+            labels={"value": "Count", "index": "Priority"},
+        )
+        st.plotly_chart(fig_priority, use_container_width=True)
+
+    with colB:
+        st.write("**Status Breakdown**")
+        fig_status = px.bar(
+            df_tickets["Status"].value_counts(),
+            title="Ticket Status Distribution",
+            labels={"value": "Count", "index": "Status"},
+        )
+        st.plotly_chart(fig_status, use_container_width=True)
+else:
+    st.info("No ticket data available.")
+
+st.markdown("---")
+
+st.success("Dashboard loaded successfully!")
