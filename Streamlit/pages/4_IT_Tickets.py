@@ -8,36 +8,34 @@ from app.models.it_ticket import ITTicket
 
 st.set_page_config(page_title="IT Tickets", layout="wide")
 
-# ---------------- LOGIN CHECK ----------------
+# ---------- LOGIN CHECK ----------
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.error("Please log in first.")
     st.switch_page("Home.py")
 
-st.title("💼 IT Support Ticket Analysis")
+st.title("💼 IT Support Tickets")
 
-# ---------------- DATABASE LOAD ----------------
+# ---------- LOAD DATA ----------
 db = DatabaseManager("DATA/intelligence_platform.db")
 
 rows = db.fetch_all(
-    """
-    SELECT ticket_id, priority, description, status, assigned_to
-    FROM it_tickets
-    """
+    "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
 )
 
-tickets = [
-    ITTicket(
+tickets = []
+for row in rows:
+    t = ITTicket(
         ticket_id=row[0],
         title=row[2],
         priority=row[1],
         status=row[3],
         assigned_to=row[4],
     )
-    for row in rows
-]
+    tickets.append(t)
 
-df = pd.DataFrame(
-    [
+ticket_records = []
+for t in tickets:
+    ticket_records.append(
         {
             "ID": t.get_id(),
             "Title": t.get_title(),
@@ -45,42 +43,44 @@ df = pd.DataFrame(
             "Status": t.get_status(),
             "Assigned To": t.get_assigned_to(),
         }
-        for t in tickets
-    ]
-)
+    )
 
-# ---------------- FILTER SECTION ----------------
+df = pd.DataFrame(ticket_records)
+
+# ---------- FILTERS ----------
 st.subheader("Filters")
 
 if df.empty:
-    st.info("No ticket data available yet.")
+    st.info("No tickets yet. Use the forms below to create one.")
     filtered_df = df
 else:
-    col1, col2, col3 = st.columns(3)
+    f1, f2, f3 = st.columns(3)
 
-    with col1:
+    with f1:
+        pri_options = ["All"] + sorted(df["Priority"].unique().tolist())
         priority_filter = st.selectbox(
-            "Filter by Priority",
-            ["All"] + sorted(df["Priority"].unique().tolist()),
+            "Priority",
+            pri_options,
             key="ticket_filter_priority",
         )
 
-    with col2:
+    with f2:
+        stat_options = ["All"] + sorted(df["Status"].unique().tolist())
         status_filter = st.selectbox(
-            "Filter by Status",
-            ["All"] + sorted(df["Status"].unique().tolist()),
+            "Status",
+            stat_options,
             key="ticket_filter_status",
         )
 
-    with col3:
+    with f3:
+        ass_options = ["All"] + sorted(df["Assigned To"].unique().tolist())
         assigned_filter = st.selectbox(
-            "Filter by Assigned To",
-            ["All"] + sorted(df["Assigned To"].unique().tolist()),
+            "Assigned To",
+            ass_options,
             key="ticket_filter_assigned",
         )
 
     filtered_df = df.copy()
-
     if priority_filter != "All":
         filtered_df = filtered_df[filtered_df["Priority"] == priority_filter]
     if status_filter != "All":
@@ -88,22 +88,22 @@ else:
     if assigned_filter != "All":
         filtered_df = filtered_df[filtered_df["Assigned To"] == assigned_filter]
 
-# ---------------- TABLE SECTION ----------------
+# ---------- TABLE ----------
 st.subheader("Ticket Records")
 st.dataframe(filtered_df, use_container_width=True)
 
-# ---------------- BASIC CHARTS ----------------
+# ---------- BASIC CHARTS ----------
 if not filtered_df.empty:
-    st.subheader("Ticket Priority Breakdown")
+    st.subheader("Priority Breakdown")
     st.bar_chart(filtered_df["Priority"].value_counts())
 
     st.subheader("Status Breakdown")
     st.bar_chart(filtered_df["Status"].value_counts())
 else:
-    st.info("Not enough ticket data for charts yet.")
+    st.info("Not enough tickets to show charts yet.")
 
-# ---------------- NEW HEATMAP (REPLACE RADAR) ----------------
-st.subheader("🔥 Staff Workload by Priority – Heatmap")
+# ---------- HEATMAP ----------
+st.subheader("🔥 Staff Workload by Priority (Heatmap)")
 
 heat_df = (
     df.groupby(["Assigned To", "Priority"])
@@ -115,38 +115,40 @@ if not heat_df.empty:
     pivot = heat_df.pivot(
         index="Assigned To",
         columns="Priority",
-        values="Count"
+        values="Count",
     ).fillna(0)
 
-    fig_heatmap = px.imshow(
+    fig_heat = px.imshow(
         pivot,
-        labels=dict(x="Priority", y="Assigned To", color="Ticket Count"),
-        title="Heatmap – Ticket Distribution by Staff and Priority",
+        labels={"x": "Priority", "y": "Assigned To", "color": "Ticket Count"},
+        title="Ticket Distribution by Staff and Priority",
         text_auto=True,
         aspect="auto",
     )
-
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.plotly_chart(fig_heat, use_container_width=True)
 else:
     st.info("Not enough data for heatmap yet.")
 
-# ---------------- CRUD SECTION ----------------
+# ---------- CRUD ----------
 st.markdown("---")
-st.header("✏️ Manage IT Tickets (CRUD)")
+st.header("✏️ Manage Tickets (CRUD)")
 
 tab_create, tab_update, tab_delete = st.tabs(
-    ["➕ Create Ticket", "📝 Update Ticket Status", "🗑️ Delete Ticket"]
+    ["➕ Create", "📝 Update Status", "🗑️ Delete"]
 )
 
-# ---------------- CREATE ----------------
+# CREATE
 with tab_create:
-    st.subheader("Create a New IT Ticket")
+    st.subheader("Create New Ticket")
 
-    col_a, col_b = st.columns(2)
+    c1, c2 = st.columns(2)
 
-    with col_a:
+    with c1:
         new_id = st.number_input(
-            "Ticket ID", min_value=1, step=1, key="ticket_create_id"
+            "Ticket ID",
+            min_value=1,
+            step=1,
+            key="ticket_create_id",
         )
         new_priority = st.selectbox(
             "Priority",
@@ -158,54 +160,58 @@ with tab_create:
             key="ticket_create_assigned",
         )
 
-    with col_b:
+    with c2:
         new_status = st.selectbox(
             "Status",
             ["Open", "In Progress", "On Hold", "Closed"],
             key="ticket_create_status",
         )
-        new_title = st.text_input("Title", key="ticket_create_title")
-        new_description = st.text_area(
-            "Description", key="ticket_create_description"
+        new_title = st.text_input(
+            "Title",
+            key="ticket_create_title",
+        )
+        new_desc = st.text_area(
+            "Description",
+            key="ticket_create_description",
         )
 
     if st.button("Create Ticket", key="ticket_create_button"):
-        if not new_title or not new_description:
-            st.warning("Please fill in Title and Description.")
+        if not new_title or not new_desc:
+            st.warning("Please fill in title and description.")
         else:
             try:
                 db.execute_query(
                     """
-                    INSERT INTO it_tickets 
+                    INSERT INTO it_tickets
                         (ticket_id, priority, description, status, assigned_to, created_at, resolution_time_hours)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         int(new_id),
                         new_priority,
-                        new_description,
+                        new_desc,
                         new_status,
                         new_assigned,
                         datetime.now().isoformat(timespec="seconds"),
                         None,
                     ),
                 )
-                st.success(f"Ticket {int(new_id)} created successfully.")
+                st.success(f"Ticket {int(new_id)} created.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error creating ticket: {e}")
 
-# ---------------- UPDATE ----------------
+# UPDATE
 with tab_update:
     st.subheader("Update Ticket Status")
 
     if df.empty:
-        st.info("No tickets available to update.")
+        st.info("No tickets to update.")
     else:
-        ticket_ids = df["ID"].tolist()
-        selected_ticket = st.selectbox(
+        id_list = df["ID"].tolist()
+        upd_id = st.selectbox(
             "Select Ticket ID",
-            ticket_ids,
+            id_list,
             key="ticket_update_id",
         )
 
@@ -219,29 +225,29 @@ with tab_update:
             try:
                 db.execute_query(
                     "UPDATE it_tickets SET status = ? WHERE ticket_id = ?",
-                    (upd_status, int(selected_ticket)),
+                    (upd_status, int(upd_id)),
                 )
-                st.success(f"Ticket {int(selected_ticket)} updated!")
+                st.success(f"Ticket {int(upd_id)} updated.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error updating ticket: {e}")
 
-# ---------------- DELETE ----------------
+# DELETE
 with tab_delete:
     st.subheader("Delete Ticket")
 
     if df.empty:
-        st.info("No tickets available to delete.")
+        st.info("No tickets to delete.")
     else:
-        ticket_ids = df["ID"].tolist()
+        id_list = df["ID"].tolist()
         del_id = st.selectbox(
-            "Select Ticket ID",
-            ticket_ids,
+            "Select Ticket ID to delete",
+            id_list,
             key="ticket_delete_id",
         )
 
         confirm = st.checkbox(
-            "I confirm I want to permanently delete this ticket",
+            "I confirm I want to permanently delete this ticket.",
             key="ticket_delete_confirm",
         )
 
@@ -256,7 +262,7 @@ with tab_delete:
                     "DELETE FROM it_tickets WHERE ticket_id = ?",
                     (int(del_id),),
                 )
-                st.success(f"Ticket {int(del_id)} deleted successfully!")
+                st.success(f"Ticket {int(del_id)} deleted.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error deleting ticket: {e}")

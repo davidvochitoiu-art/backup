@@ -17,7 +17,7 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.error("Please log in first.")
     st.switch_page("Home.py")
 
-st.title("🤖 AI Assistant (OOP Version)")
+st.title("🤖 AI Assistant")
 
 # ------------------------------
 # DATABASE & AI ENGINE
@@ -26,175 +26,142 @@ db = DatabaseManager("DATA/intelligence_platform.db")
 ai = AIAssistant(model="phi3:mini")
 
 # ------------------------------
-# CHAT HISTORY SETUP
+# CHAT HISTORY
 # ------------------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-
 # ==============================================================
-#            LOAD DATA FROM DATABASE USING OOP MODELS
+#           LOAD DATA FROM DATABASE USING OOP MODELS
 # ==============================================================
 
-# INCIDENTS
-rows_inc = db.fetch_all(
-    "SELECT incident_id, category, severity, status, description FROM cyber_incidents"
-)
-incidents = [SecurityIncident(*row) for row in rows_inc]
-
-# DATASETS
-rows_ds = db.fetch_all(
-    "SELECT dataset_id, name, rows, columns, uploaded_by, upload_date FROM datasets_metadata"
-)
-datasets = [Dataset(*row) for row in rows_ds]
-
-# TICKETS
-rows_tk = db.fetch_all(
-    "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
-)
-tickets = [
-    ITTicket(
-        ticket_id=row[0],
-        title=row[2],
-        priority=row[1],
-        status=row[3],
-        assigned_to=row[4]
+def load_data():
+    # Incidents
+    rows_inc = db.fetch_all(
+        "SELECT incident_id, category, severity, status, description FROM cyber_incidents"
     )
-    for row in rows_tk
-]
+    incidents = [SecurityIncident(*row) for row in rows_inc]
 
+    # Datasets
+    rows_ds = db.fetch_all(
+        "SELECT dataset_id, name, rows, columns, uploaded_by, upload_date FROM datasets_metadata"
+    )
+    datasets = [Dataset(*row) for row in rows_ds]
+
+    # Tickets
+    rows_tk = db.fetch_all(
+        "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
+    )
+    tickets = [
+        ITTicket(
+            ticket_id=row[0],
+            title=row[2],
+            priority=row[1],
+            status=row[3],
+            assigned_to=row[4],
+        ) for row in rows_tk
+    ]
+
+    return incidents, datasets, tickets
+
+incidents, datasets, tickets = load_data()
 
 # ==============================================================
-#         BUILD INTELLIGENT CONTEXT FOR THE AI MODEL
+#         OPTIONAL INTELLIGENCE CONTEXT FOR ANALYTICS ANSWERS
 # ==============================================================
 
 def build_context():
-    # -------------------------------------------
-    # Build intelligent analytics for the AI
-    # -------------------------------------------
-    context = "### SYSTEM INTELLIGENCE CONTEXT\n"
+    context = "### SYSTEM SUMMARY\n"
 
-    # ==========================================================
-    # INCIDENT ANALYTICS
-    # ==========================================================
-    context += "\n## Cybersecurity Incidents Summary\n"
-
+    # --- INCIDENTS ---
+    context += "\n## Cybersecurity Incidents\n"
     if incidents:
-        total_inc = len(incidents)
-        critical_inc = sum(1 for i in incidents if i.get_severity().lower() == "critical")
-        high_inc = sum(1 for i in incidents if i.get_severity().lower() == "high")
-
-        # Most common category
-        cats = [i.get_incident_type() for i in incidents]
-        top_cat = max(set(cats), key=cats.count)
+        total = len(incidents)
+        critical = sum(1 for i in incidents if i.get_severity().lower() == "critical")
+        top_cat = max([i.get_incident_type() for i in incidents], key=lambda x: 
+                      [i.get_incident_type() for i in incidents].count(x))
 
         context += (
-            f"- Total incidents: {total_inc}\n"
-            f"- Critical incidents: {critical_inc}\n"
-            f"- High severity incidents: {high_inc}\n"
-            f"- Most common incident category: {top_cat}\n"
+            f"- Total incidents: {total}\n"
+            f"- Critical: {critical}\n"
+            f"- Most common category: {top_cat}\n"
         )
-
-        # List top 5 severe incidents
-        top_severe = sorted(
-            incidents,
-            key=lambda i: i.get_severity_level(),
-            reverse=True
-        )[:5]
-
-        context += "\n### Top Severe Incidents\n"
-        for inc in top_severe:
-            context += (
-                f"- [{inc.get_severity()}] {inc.get_incident_type()} "
-                f"(Status: {inc.get_status()}) — {inc.get_description()}\n"
-            )
     else:
-        context += "- No incident data available.\n"
+        context += "- No incident data.\n"
 
-    # ==========================================================
-    # DATASET ANALYTICS
-    # ==========================================================
-    context += "\n## Dataset Analytics\n"
-
+    # --- DATASETS ---
+    context += "\n## Datasets\n"
     if datasets:
         largest = max(datasets, key=lambda d: d.get_rows() or 0)
-
         context += (
             f"- Total datasets: {len(datasets)}\n"
-            f"- Largest dataset: {largest.get_name()} "
-            f"({largest.get_rows()} rows, {largest.get_columns()} cols)\n"
+            f"- Largest dataset: {largest.get_name()} ({largest.get_rows()} rows)\n"
         )
-
-        # Row count distribution
-        row_counts = [d.get_rows() for d in datasets if d.get_rows() is not None]
-        if row_counts:
-            avg_rows = sum(row_counts) / len(row_counts)
-            context += f"- Average dataset row count: {avg_rows:.2f}\n"
     else:
-        context += "- No datasets available.\n"
+        context += "- No dataset data.\n"
 
-    # ==========================================================
-    # TICKET ANALYTICS
-    # ==========================================================
-    context += "\n## IT Tickets Summary\n"
-
+    # --- TICKETS ---
+    context += "\n## IT Tickets\n"
     if tickets:
-        total_tk = len(tickets)
-        closed_tk = sum(1 for t in tickets if t.get_status().lower() == "closed")
-
-        staff_list = [t.get_assigned_to() for t in tickets if t.get_assigned_to()]
-        if staff_list:
-            top_worker = max(set(staff_list), key=staff_list.count)
-        else:
-            top_worker = "N/A"
+        total = len(tickets)
+        closed = sum(1 for t in tickets if t.get_status().lower() == "closed")
+        staff = [t.get_assigned_to() for t in tickets if t.get_assigned_to()]
+        top_staff = max(set(staff), key=staff.count) if staff else "N/A"
 
         context += (
-            f"- Total tickets: {total_tk}\n"
-            f"- Closed tickets: {closed_tk}\n"
-            f"- Staff with most tickets: {top_worker}\n"
+            f"- Total tickets: {total}\n"
+            f"- Closed tickets: {closed}\n"
+            f"- Staff with most assignments: {top_staff}\n"
         )
     else:
-        context += "- No ticket data available.\n"
+        context += "- No ticket data.\n"
 
-    # ==========================================================
-    # FINAL INSTRUCTIONS FOR THE AI
-    # ==========================================================
     context += (
         "\n### Instructions\n"
-        "You are an expert analyst AI assistant.\n"
-        "Use the analytics above to answer the user's question clearly and intelligently.\n"
-        "Provide explanations, insights, and recommendations when helpful.\n"
-        "Do not just repeat the data — analyse it.\n"
+        "You may use the data above if the question relates to incidents, datasets, "
+        "or IT tickets. If the user's question is general or unrelated, answer normally.\n"
     )
 
     return context
 
 
 # ==============================================================
-#                 DISPLAY CHAT HISTORY
+#  USER SETTING: USE CONTEXT OR NOT?
+# ==============================================================
+
+use_context = st.checkbox(
+    "Use system analytics context (optional)", 
+    value=True,
+    help="Turn off to ask completely general questions."
+)
+
+# ==============================================================
+#  DISPLAY CHAT HISTORY
 # ==============================================================
 
 for role, msg in st.session_state.chat_history:
     st.chat_message(role).markdown(msg)
 
-
 # ==============================================================
-#                    USER INPUT BOX
+#  USER INPUT
 # ==============================================================
 
-prompt = st.chat_input("Ask the AI anything...")
+prompt = st.chat_input("Ask me anything…")
 
 if prompt:
-    # Add user message to chat history
+    # show user message immediately
     st.session_state.chat_history.append(("user", prompt))
     st.chat_message("user").markdown(prompt)
 
-    # Build full prompt including context
-    full_prompt = build_context() + "\nUser question: " + prompt
+    # build final prompt
+    if use_context:
+        full_prompt = build_context() + "\nUser: " + prompt
+    else:
+        full_prompt = prompt  # fully open domain
 
-    with st.spinner("AI is thinking..."):
-        ai_response = ai.ask(full_prompt)
+    with st.spinner("AI is thinking…"):
+        response = ai.ask(full_prompt)
 
-    # Show AI response
-    st.session_state.chat_history.append(("assistant", ai_response))
-    st.chat_message("assistant").markdown(ai_response)
+    # show response
+    st.session_state.chat_history.append(("assistant", response))
+    st.chat_message("assistant").markdown(response)

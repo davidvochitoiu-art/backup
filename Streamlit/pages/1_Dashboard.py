@@ -7,6 +7,7 @@ from app.models.security_incident import SecurityIncident
 from app.models.dataset import Dataset
 from app.models.it_ticket import ITTicket
 
+# I just keep it wide so charts look nicer
 st.set_page_config(page_title="Dashboard", layout="wide")
 
 # ---------------- LOGIN CHECK ----------------
@@ -14,25 +15,25 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.error("Please log in first.")
     st.switch_page("Home.py")
 
-st.title("📊 Multi-Domain Intelligence Platform – Dashboard")
+st.title("📊 Multi-Domain Intelligence Platform")
 
-# ---------------- DATABASE ----------------
+# ---------------- LOAD DATA FROM DB ----------------
 db = DatabaseManager("DATA/intelligence_platform.db")
 
-# Cyber incidents
+# Load incidents
 inc_rows = db.fetch_all(
     "SELECT incident_id, category, severity, status, description FROM cyber_incidents"
 )
-incidents = [
-    SecurityIncident(
+incidents = []
+for row in inc_rows:
+    incident = SecurityIncident(
         incident_id=row[0],
         incident_type=row[1],
         severity=row[2],
         status=row[3],
         description=row[4],
     )
-    for row in inc_rows
-]
+    incidents.append(incident)
 
 df_inc = pd.DataFrame(
     [
@@ -46,11 +47,21 @@ df_inc = pd.DataFrame(
     ]
 )
 
-# Datasets
+# Load datasets
 data_rows = db.fetch_all(
     "SELECT dataset_id, name, rows, columns, uploaded_by, upload_date FROM datasets_metadata"
 )
-datasets = [Dataset(*row) for row in data_rows]
+datasets = []
+for row in data_rows:
+    d = Dataset(
+        dataset_id=row[0],
+        name=row[1],
+        rows=row[2],
+        columns=row[3],
+        uploaded_by=row[4],
+        upload_date=row[5],
+    )
+    datasets.append(d)
 
 df_data = pd.DataFrame(
     [
@@ -67,20 +78,20 @@ df_data = pd.DataFrame(
     ]
 )
 
-# IT Tickets
+# Load tickets
 ticket_rows = db.fetch_all(
     "SELECT ticket_id, priority, description, status, assigned_to FROM it_tickets"
 )
-tickets = [
-    ITTicket(
+tickets = []
+for row in ticket_rows:
+    t = ITTicket(
         ticket_id=row[0],
         title=row[2],
         priority=row[1],
         status=row[3],
         assigned_to=row[4],
     )
-    for row in ticket_rows
-]
+    tickets.append(t)
 
 df_tickets = pd.DataFrame(
     [
@@ -95,18 +106,19 @@ df_tickets = pd.DataFrame(
 )
 
 # ---------------- KPI CARDS ----------------
-st.subheader("📌 Key Metrics Overview")
+st.subheader("📌 Quick Overview")
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Total Cyber Incidents", len(df_inc))
+    st.metric("Total Incidents", len(df_inc))
 
 with col2:
-    critical_count = sum(
-        1 for i in incidents if i.get_severity().lower() == "critical"
-    )
-    st.metric("Critical Incidents", critical_count)
+    crit_count = 0
+    for inc in incidents:
+        if inc.get_severity() and inc.get_severity().lower() == "critical":
+            crit_count += 1
+    st.metric("Critical Incidents", crit_count)
 
 with col3:
     st.metric("Total Datasets", len(df_data))
@@ -116,94 +128,91 @@ with col4:
 
 st.markdown("---")
 
-# ---------------- 3-DOMAIN VISUAL OVERVIEW ----------------
-st.header("📊 Domain Analytics Overview")
-
-# --------- CYBER INCIDENTS ----------
-st.subheader("🛡 Cybersecurity Overview")
+# ---------------- CYBER SECTION ----------------
+st.header("🛡 Cybersecurity Overview")
 
 if not df_inc.empty:
-    colA, colB = st.columns(2)
+    c1, c2 = st.columns(2)
 
-    with colA:
+    with c1:
         st.write("**Incident Severity Distribution**")
+        sev_counts = df_inc["Severity"].value_counts()
         fig_sev = px.bar(
-            df_inc["Severity"].value_counts(),
+            sev_counts,
             title="Severity Distribution",
-            labels={"value": "Count", "index": "Severity"},
+            labels={"index": "Severity", "value": "Count"},
         )
         st.plotly_chart(fig_sev, use_container_width=True)
 
-    with colB:
-        st.write("**Incident Categories**")
+    with c2:
+        st.write("**Incident Category Distribution**")
+        cat_counts = df_inc["Category"].value_counts()
         fig_cat = px.bar(
-            df_inc["Category"].value_counts(),
+            cat_counts,
             title="Category Distribution",
-            labels={"value": "Count", "index": "Category"},
+            labels={"index": "Category", "value": "Count"},
         )
         st.plotly_chart(fig_cat, use_container_width=True)
 else:
-    st.info("No incident data available.")
+    st.info("No incident data available yet.")
 
 st.markdown("---")
 
-# --------- DATASETS ----------
-st.subheader("📂 Dataset Overview")
+# ---------------- DATASET SECTION ----------------
+st.header("📂 Dataset Overview")
 
 if not df_data.empty:
-    colA, colB = st.columns(2)
+    d1, d2 = st.columns(2)
 
-    with colA:
-        st.write("**Dataset Size (MB)**")
+    with d1:
+        st.write("**Dataset Size in MB**")
         fig_size = px.bar(
             df_data,
             x="Name",
             y="Estimated Size (MB)",
-            title="Dataset Size Comparison",
+            title="Dataset Sizes",
         )
         st.plotly_chart(fig_size, use_container_width=True)
 
-    with colB:
+    with d2:
         st.write("**Rows per Dataset**")
         fig_rows = px.line(
             df_data,
             x="Name",
             y="Rows",
             markers=True,
-            title="Dataset Row Count Overview",
+            title="Row Count per Dataset",
         )
         st.plotly_chart(fig_rows, use_container_width=True)
 else:
-    st.info("No dataset information found.")
+    st.info("No datasets stored yet.")
 
 st.markdown("---")
 
-# --------- IT TICKETS ----------
-st.subheader("💼 IT Ticket Overview")
+# ---------------- IT TICKET SECTION ----------------
+st.header("💼 IT Tickets Overview")
 
 if not df_tickets.empty:
-    colA, colB = st.columns(2)
+    t1, t2 = st.columns(2)
 
-    with colA:
-        st.write("**Priority Breakdown**")
-        fig_priority = px.bar(
+    with t1:
+        st.write("**Ticket Priority Breakdown**")
+        fig_pri = px.bar(
             df_tickets["Priority"].value_counts(),
-            title="Ticket Priority Distribution",
-            labels={"value": "Count", "index": "Priority"},
+            title="Ticket Priorities",
+            labels={"index": "Priority", "value": "Count"},
         )
-        st.plotly_chart(fig_priority, use_container_width=True)
+        st.plotly_chart(fig_pri, use_container_width=True)
 
-    with colB:
-        st.write("**Status Breakdown**")
-        fig_status = px.bar(
+    with t2:
+        st.write("**Ticket Status Breakdown**")
+        fig_stat = px.bar(
             df_tickets["Status"].value_counts(),
-            title="Ticket Status Distribution",
-            labels={"value": "Count", "index": "Status"},
+            title="Ticket Statuses",
+            labels={"index": "Status", "value": "Count"},
         )
-        st.plotly_chart(fig_status, use_container_width=True)
+        st.plotly_chart(fig_stat, use_container_width=True)
 else:
-    st.info("No ticket data available.")
+    st.info("No ticket data available yet.")
 
-st.markdown("---")
-
-st.success("Dashboard loaded successfully!")
+st.success("Dashboard loaded.")

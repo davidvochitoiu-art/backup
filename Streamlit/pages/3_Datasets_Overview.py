@@ -6,29 +6,37 @@ from datetime import datetime
 from app.services.database_manager import DatabaseManager
 from app.models.dataset import Dataset
 
-st.set_page_config(page_title="Datasets Overview", layout="wide")
+st.set_page_config(page_title="Datasets", layout="wide")
 
-# ---------------- LOGIN CHECK ----------------
+# ---------- LOGIN CHECK ----------
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
     st.error("Please log in first.")
     st.switch_page("Home.py")
 
-st.title("📂 Dataset Metadata Analytics")
+st.title("📂 Dataset Metadata Overview")
 
-# ---------------- DATABASE LOAD ----------------
+# ---------- LOAD DATA ----------
 db = DatabaseManager("DATA/intelligence_platform.db")
 
 rows = db.fetch_all(
-    """
-    SELECT dataset_id, name, rows, columns, uploaded_by, upload_date
-    FROM datasets_metadata
-    """
+    "SELECT dataset_id, name, rows, columns, uploaded_by, upload_date FROM datasets_metadata"
 )
 
-datasets = [Dataset(*row) for row in rows]
+datasets = []
+for row in rows:
+    d = Dataset(
+        dataset_id=row[0],
+        name=row[1],
+        rows=row[2],
+        columns=row[3],
+        uploaded_by=row[4],
+        upload_date=row[5],
+    )
+    datasets.append(d)
 
-df = pd.DataFrame(
-    [
+records = []
+for d in datasets:
+    records.append(
         {
             "ID": d.get_id(),
             "Name": d.get_name(),
@@ -38,17 +46,17 @@ df = pd.DataFrame(
             "Upload Date": d.get_upload_date(),
             "Estimated Size (MB)": d.calculate_size_mb(),
         }
-        for d in datasets
-    ]
-)
+    )
 
-# ---------------- TABLE ----------------
+df = pd.DataFrame(records)
+
+# ---------- TABLE ----------
 st.subheader("Dataset Records")
 st.dataframe(df, use_container_width=True)
 
-# ---------------- SUNBURST CHART (NEW) ----------------
+# ---------- CHARTS ----------
 if not df.empty:
-    st.subheader("🌞 Dataset Structure (Sunburst Chart)")
+    st.subheader("🌞 Dataset Structure (Sunburst)")
 
     sunburst_df = df.copy()
     sunburst_df["Size_MB"] = sunburst_df["Estimated Size (MB)"]
@@ -57,58 +65,73 @@ if not df.empty:
         sunburst_df,
         path=["Uploaded By", "Name"],
         values="Size_MB",
-        title="Sunburst – Dataset Size by Uploader and Dataset",
+        title="Dataset Size by Uploader and Dataset",
     )
     st.plotly_chart(fig_sunburst, use_container_width=True)
 
-    # OPTIONAL extra charts for your report
-    st.subheader("📈 Dataset Size Distribution")
+    st.subheader("📈 Size Distribution (MB)")
     st.bar_chart(df["Estimated Size (MB)"])
 
-    st.subheader("📊 Rows per Dataset (Line Chart)")
-    st.line_chart(df.set_index("Name")["Rows"])
-
+    st.subheader("📊 Rows per Dataset")
+    if "Name" in df.columns:
+        line_data = df.set_index("Name")["Rows"]
+        st.line_chart(line_data)
 else:
-    st.info("No datasets found yet. Use the CRUD section below to add one.")
+    st.info("No datasets yet. Add one below.")
 
-# ---------------- CRUD SECTION ----------------
+# ---------- CRUD ----------
 st.markdown("---")
 st.header("✏️ Manage Datasets (CRUD)")
 
 tab_create, tab_update, tab_delete = st.tabs(
-    ["➕ Create Dataset", "📝 Update Dataset", "🗑️ Delete Dataset"]
+    ["➕ Create", "📝 Update", "🗑️ Delete"]
 )
 
-# ---------------- CREATE ----------------
+# CREATE
 with tab_create:
     st.subheader("Create a New Dataset")
 
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns(2)
 
-    with col1:
+    with c1:
         new_id = st.number_input(
-            "Dataset ID", min_value=1, step=1, key="dataset_create_id"
+            "Dataset ID",
+            min_value=1,
+            step=1,
+            key="dataset_create_id",
         )
-        new_name = st.text_input("Dataset Name", key="dataset_create_name")
+        new_name = st.text_input(
+            "Dataset Name",
+            key="dataset_create_name",
+        )
         new_rows = st.number_input(
-            "Rows", min_value=0, step=1, key="dataset_create_rows"
+            "Rows",
+            min_value=0,
+            step=1,
+            key="dataset_create_rows",
         )
         new_cols = st.number_input(
-            "Columns", min_value=0, step=1, key="dataset_create_cols"
+            "Columns",
+            min_value=0,
+            step=1,
+            key="dataset_create_cols",
         )
 
-    with col2:
+    with c2:
         new_uploader = st.text_input(
-            "Uploaded By", key="dataset_create_uploader"
+            "Uploaded By",
+            key="dataset_create_uploader",
         )
         default_date = datetime.now().strftime("%Y-%m-%d")
         new_date = st.text_input(
-            "Upload Date", value=default_date, key="dataset_create_date"
+            "Upload Date",
+            value=default_date,
+            key="dataset_create_date",
         )
 
     if st.button("Create Dataset", key="dataset_create_button"):
         if not new_name or not new_uploader:
-            st.warning("Please fill in Dataset Name and Uploaded By.")
+            st.warning("Please fill in name and uploader.")
         else:
             try:
                 db.execute_query(
@@ -126,59 +149,59 @@ with tab_create:
                         new_date,
                     ),
                 )
-                st.success(f"Dataset {int(new_id)} created successfully.")
+                st.success(f"Dataset {int(new_id)} created.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error creating dataset: {e}")
 
-# ---------------- UPDATE ----------------
+# UPDATE
 with tab_update:
-    st.subheader("Update Dataset Metadata")
+    st.subheader("Update Dataset")
 
     if df.empty:
-        st.info("No datasets available to update.")
+        st.info("No datasets to update.")
     else:
-        dataset_ids = df["ID"].tolist()
+        id_list = df["ID"].tolist()
         selected_id = st.selectbox(
             "Select Dataset ID",
-            dataset_ids,
+            id_list,
             key="dataset_update_id",
         )
 
-        selected_row = df[df["ID"] == selected_id].iloc[0]
+        current = df[df["ID"] == selected_id].iloc[0]
 
-        col1, col2 = st.columns(2)
+        u1, u2 = st.columns(2)
 
-        with col1:
+        with u1:
             upd_name = st.text_input(
                 "Name",
-                value=selected_row["Name"],
+                value=current["Name"],
                 key="dataset_update_name",
             )
             upd_rows = st.number_input(
                 "Rows",
                 min_value=0,
                 step=1,
-                value=int(selected_row["Rows"]),
+                value=int(current["Rows"]),
                 key="dataset_update_rows",
             )
             upd_cols = st.number_input(
                 "Columns",
                 min_value=0,
                 step=1,
-                value=int(selected_row["Columns"]),
+                value=int(current["Columns"]),
                 key="dataset_update_cols",
             )
 
-        with col2:
+        with u2:
             upd_uploader = st.text_input(
                 "Uploaded By",
-                value=selected_row["Uploaded By"],
+                value=current["Uploaded By"],
                 key="dataset_update_uploader",
             )
             upd_date = st.text_input(
                 "Upload Date",
-                value=selected_row["Upload Date"],
+                value=current["Upload Date"],
                 key="dataset_update_date",
             )
 
@@ -199,24 +222,22 @@ with tab_update:
                         int(selected_id),
                     ),
                 )
-                st.success(
-                    f"Dataset {int(selected_id)} updated successfully."
-                )
+                st.success(f"Dataset {int(selected_id)} updated.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error updating dataset: {e}")
 
-# ---------------- DELETE ----------------
+# DELETE
 with tab_delete:
     st.subheader("Delete Dataset")
 
     if df.empty:
-        st.info("No datasets available to delete.")
+        st.info("No datasets to delete.")
     else:
-        dataset_ids = df["ID"].tolist()
+        id_list = df["ID"].tolist()
         delete_id = st.selectbox(
-            "Select Dataset ID to Delete",
-            dataset_ids,
+            "Select Dataset ID to delete",
+            id_list,
             key="dataset_delete_id",
         )
 
@@ -236,9 +257,7 @@ with tab_delete:
                     "DELETE FROM datasets_metadata WHERE dataset_id = ?",
                     (int(delete_id),),
                 )
-                st.success(
-                    f"Dataset {int(delete_id)} deleted successfully."
-                )
+                st.success(f"Dataset {int(delete_id)} deleted.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error deleting dataset: {e}")
